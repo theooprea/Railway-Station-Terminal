@@ -31,14 +31,12 @@ class Station {
 				cout << "No such railway" << endl;
 			}
 			else {
-				list<int>::iterator it = railways[railway].begin();
 				int lines = 80 - 8 * railways[railway].size();
 				for (int i = 0; i < lines; i++) {
 					cout << "-";
 				}
-				// TODO fix showing it
-				for (int i = 0; i < railways[i].size(); i++) {
-					cout << *it << "----";
+				for (int i : railways[railway]) {
+					cout << i << "----";
 				}
 				cout << endl;
 			}
