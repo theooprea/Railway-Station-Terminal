@@ -1,6 +1,7 @@
 #include <iostream>
 #include <list>
 #include <vector>
+#include "Source.h"
 
 using namespace std;
 
@@ -13,10 +14,28 @@ int digits(int n) {
 	return count;
 }
 // TODO implement counting the number of - to add per railway
-/*int lines_per_railway(Railway railway) {
+char** command_tokenizer(char *sentence, int *word_counter, const char *tokens) {
+	char aux[255];
+	char aux2[255];
+	strcpy(aux, sentence);
+	strcpy(aux2, sentence);
+	int count = 0;
+	char* p = strtok(aux, tokens);
+	while (p) {
+		count++;
+		p = strtok(NULL, tokens);
+	}
+	*word_counter = count;
+	char** words = new char*[count];
 	int counter = 0;
-	for ()
-}*/
+	p = strtok(aux2, tokens);
+	while (p) {
+		words[counter] = new char[strlen(p) + 1];
+		strcpy(words[counter++], p);
+		p = strtok(NULL, tokens);
+	}
+	return words;
+}
 
 class Train {
 private:
@@ -54,6 +73,7 @@ public:
 		return abreviation;
 	}
 };
+
 class Railway {
 private:
 	list<Train> trains;
@@ -66,20 +86,31 @@ public:
 		trains.push_front(train);
 	}
 	void print_railway() {
-		cout << "Railway nr: " << railway_nr << " ";
-		int lines = 80 - 8 * trains.size();
+		cout << "Railway nr: " << railway_nr + 1<< " ";
+		int lines = getTotalDigits();
 		for (int i = 0; i < lines; i++) {
 			cout << "-";
 		}
 		for (Train current : trains) {
-			cout << current.getNumber() << "---";
+			cout<< current.getAbreviation() << current.getNumber() << "---";
 		}
 		cout << endl;
+	}
+	void pop_train() {
+		trains.pop_back();
 	}
 	int getSize() {
 		return trains.size();
 	}
+	int getTotalDigits() {
+		int count = 0;
+		for (Train t : trains) {
+			count += digits(t.getNumber()) + t.getAbreviation().size() + 3;
+		}
+		return 81 - count;
+	}
 };
+
 class Station {
 private:
 	string name;
@@ -95,10 +126,12 @@ public:
 		}
 	}
 	void print_station() {
-		cout << "-----" << name << "-----" << endl;
+		cout << "------------" << name << "------------" << endl;
+		cout << "----- Nr of railways: " << nr_railways << " -----" << endl;
 		for (int i = 0; i < nr_railways; i++) {
 			railways[i].print_railway();
 		}
+
 
 	}
 	void print_railways() {
@@ -107,12 +140,17 @@ public:
 		}
 	}
 	void print_railway(int railway_nr) {
-		railways[railway_nr].print_railway();
+		if (railway_nr < nr_railways && railway_nr >= 0) {
+			railways[railway_nr].print_railway();
+		}
+		else {
+			cout << "The given railway doesn't exist!(" << railway_nr + 1 << ")" << endl;
+		}
 	}
 	void add_train(int train_number, int railway_number) {
 		if (train_number >= 200 && train_number < 17000) {
-			if (railway_number >= nr_railways) {
-				cout << "The given railway doesn't exist!(" << railway_number << ")" << endl;
+			if (railway_number >= nr_railways || railway_number < 0) {
+				cout << "The given railway doesn't exist!(" << railway_number + 1 << ")" << endl;
 			}
 			else {
 				if (railways[railway_number].getSize() == 8) {
@@ -127,7 +165,9 @@ public:
 		else {
 			cout << "The given train doesn't exist according to CFR!(" << train_number << ")" << endl;
 		}
-		
+	}
+	void pop_train(int railway_nr) {
+		railways[railway_nr].pop_train();
 	}
 };
 
@@ -160,47 +200,38 @@ int main() {
 	fgets(command, 255, stdin);
 	command[strlen(command) - 1] = '\0';
 	while (strcmp(command,"stop") && strcmp(command, "quit") && strcmp(command, "q") && strcmp(command, "s")) {
-		if (!strcmp(command, "pr")) {
-			station.print_railways();
-		}
-		else if (command[0] == 'p' && command[1] == 'r') {
-			int railway = atoi(command + 3);
-			station.print_railway(railway);
-		}
-		else if (!strcmp(command, "ps")) {
-			station.print_station();
-		}
-		else if (command[0] == 'a' && command[1] == 'd' && command[2] == 'd') {
-			if (command[3] && command[4]) {
-				char* aux = command + 4;
-				int poz = 0;
-				int size = strlen(aux);
-				for (int i = 0; i < size; i++) {
-					if (aux[i] == ' ') {
-						poz = i;
-					}
-				}
-				if (poz) {
-					int railway = atoi(aux + poz + 1);
-					char train[10];
-					strcpy(train, aux);
-					train[poz] = '\0';
-					int train_nr = atoi(train);
-					station.add_train(train_nr, railway);
-				}
-				else {
-					cout << "The add command must be run as 'add train railway'" << endl;
-				}
+		int words = 0;
+		char **commands = command_tokenizer(command, &words, " ");
+
+		if (!strcmp(commands[0], "pr")) {
+			if (words > 1) {
+				int railway = atoi(command + 3);
+				station.print_railway(railway - 1);
 			}
 			else {
-				cout << "The add command must be run as 'add train railway'" << endl;
+				station.print_railways();
 			}
 		}
-		else if (!strcmp(command, "-help")) {
+		else if (!strcmp(commands[0], "ps")) {
+			station.print_station();
+		}
+		else if (!strcmp(commands[0], "add")) {
+			if (words == 3) {
+				station.add_train(atoi(commands[1]), atoi(commands[2]) - 1);
+			}
+			else {
+				cout << "Error: Not enough operators given" << endl;
+			}
+		}
+		else if (!strcmp(commands[0], "-help")) {
 			cout << "help" << endl;
 		}
+		else if (!strcmp(commands[0], "remove") || !strcmp(commands[0], "rm")) {
+			// TODO fix unexisting railway
+			station.pop_train(atoi(commands[1]) - 1);
+		}
 		else {
-			cout << "Command " << command << "not found, use -help for more details";
+			cout << "Command " << command << "not found, use -help for more details" << endl;
 		}
 		fgets(command, 255, stdin);
 		command[strlen(command) - 1] = '\0';
